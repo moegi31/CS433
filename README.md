@@ -1,7 +1,10 @@
 CS433
 =====
+<i>Repository for Computer Science 433: Computer Security and Encryption</i>
 
-Secure Banking
+
+### <i>Final Project:</i>Secure Banking:
+-----------
 
 Implement the authentication and secure communications protocols for a distributed system consisting of a bank server and a number of automatic teller machines (ATMs). Assume one bank server and 2 ATMs. The bank should be implemented as a concurrent server Public key cryptography is employed for secrecy, integrity-protection, and authentication. The bank server’s public key is stored by the ATM, with the corresponding private key stored by server the connected to that ATM. You may also assume that the bank has the public keys of the two ATMs. ATM would work like this:
 
