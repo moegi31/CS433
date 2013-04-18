@@ -1,58 +1,80 @@
 # includes from Python's cryptography library
 from Crypto.PublicKey import RSA
 from Crypto import Random
+from Crypto.Hash import SHA256
 
-
-random_generator = Random.new().read
-key = RSA.generate(1024, random_generator)
-key
-
+# socket library includes
 import socket 
 import sys
 from time import gmtime, strftime
 
-# Check the command line arguments
-if len(sys.argv) != 2:
-	print "USAGE: ", sys.argv[0], " <PORT> "
-	exit(0)
-
-# Get the port number 
-port = int(sys.argv[1]) 
-
-# The backlog
-backlog = 100
-
-# Create A TCP socket
-listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-
-# Bing the socket to the port 
-listenSocket.bind(('',port)) 
-
-# Start listening for incoming connections
-listenSocket.listen(backlog) 
-
 # The client message size
 CLIENT_MSG_SIZE = 1024
 
-# Service clients forever
-while 1: 
-	
-	# Accept a connection from the client
-	client, address = listenSocket.accept() 
+def import_pub_atmkey(atmid):
+	try:
+		filename = "pubkeys/atmpubkey"+str(atmid)+".pem"
+		f = open(filename)
+	except IOError as e:
+		print e
+		raise
+	else:
+		key = RSA.importKey(f.read())
+		f.close()
+	return key
 
-	# Get the data from the client
-	data = client.recv(CLIENT_MSG_SIZE) 
+def import_priv_bankkey():
+	try:
+		filename = "privkeys/bankkey.pem"
+		f = open(filename)
+	except IOError as e:
+		print e
+		raise
+	else:
+		key = RSA.importKey(f.read())
+		f.close()
+	return key
 
-	print "GOT: ", data, " from the client"
-	
-	# Make sure the data was successfully received
-	if data: 
-        	
-		# Get the current date and time
-		dateAndTime = strftime("%a, %d %b %Y %X +0000", gmtime())
+if __name__ == "__main__":
+	# Check the command line arguments
+	if len(sys.argv) != 2:
+		print "USAGE: ", sys.argv[0], " <PORT> "
+		exit(0)
+
+	# Get the port number 
+	port = int(sys.argv[1]) 
+	# The backlog
+	backlog = 100
+	# Create A TCP socket
+	listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+	# Bing the socket to the port 
+	listenSocket.bind(('',port)) 
+	# Start listening for incoming connections
+	listenSocket.listen(backlog) 
+	# Service clients forever
+	while 1: 
+		# Accept a connection from the client
+		client, address = listenSocket.accept() 
+		# Get client's public key
+		atmsig = client.recv(CLIENT_MSG_SIZE) 
 		
-		# Send the date and time to the client
-		client.send(dateAndTime) 
-   
+		# import atm pubkey
+		atmpubkey = import_pub_atmkey(1)
+		
+		# verify atm identity
+		message = 'I can see the matrix'
+		digest = SHA256.new(message).digest()
+		if( atmpubkey.verify(digest, (long(atmsig), )) ):
+			print "ATM Identity Verified! wunderbar..."
+			# import bank private key
+			bankkey = import_priv_bankkey()
+			# generate signature using previous digest
+			banksig = bankkey.sign (digest, None)[0]
+			client.send(str(banksig))
+
+			cipheruserdets = client.recv(CLIENT_MSG_SIZE)
+			usercredentials = bankkey.decrypt(cipheruserdets)
+			print usercredentials
+
 		# Close the connection to the client
 		client.close()
