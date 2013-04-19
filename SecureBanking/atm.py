@@ -10,6 +10,9 @@ import sys
 # password retrieval
 import getpass
 
+# expression modifier to ensure proper input
+import re
+
 # defined values
 SERVER_MSG_SIZE = 1024
 
@@ -56,6 +59,19 @@ if __name__ == "__main__":
 		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> "
 		exit(0)
 
+	# get user ID
+	print "Welcome to SecureBanking\n"
+	userid = raw_input("User ID(6 digit ID): ")
+	
+	# make sure input has only digits and has six digits
+	while (not userid.isdigit()) or (len(userid) != 6 ):
+		print "Please make sure your user id is 6 digits and only contains digits"
+		userid = raw_input("User ID(6 digit ID): ")
+	
+	# get user password
+	passwd = getpass.getpass("enter password: ") 
+		
+
 	# import key from private key dir
 	atmkey = import_priv_atmkey(1)	
 	# create communication socket
@@ -72,18 +88,33 @@ if __name__ == "__main__":
 	banksig = clientSocket.recv(SERVER_MSG_SIZE)
 	# import bank public key
 	bankpubkey = import_pub_bankkey()
+	
+	# bank identity is okay
 	if( bankpubkey.verify(digest, (long(banksig), )) ):
-		print "Bank Identity Verified! Oh ya, so german"
-		# get user ID
-		print "Welcome to SecureBanking\n"
-		userid = raw_input("User ID(6 digit ID): ")
-		# get user password
-		passwd = getpass.getpass("enter password: ") 
-		
+		print "\nBank Identity Verified!"
 		# send userid/passwd
 		cipheruserdets = bankpubkey.encrypt(userid+" "+passwd, None)[0]
 		clientSocket.send(cipheruserdets)
-	
+		
+		while (1):
+			print "\nPlease select from the following options:\n"+\
+			"[B] display the current balance of the account\n"+\
+			"[D] deposit money\n"+\
+			"[W] withdrawals\n"+\
+			"[A] account activities\n"+\
+			"[Q] quit\n"
+
+			option = raw_input("Please enter selection as single letter: ").upper()
+			while (len(option) !=1) or (not re.match("[ABDWQ]", option)):
+				print "Please enter option as single letter (either A,B,D,W or Q)"
+				option = raw_input("Please enter selection as single letter: ").upper() 
+			
+			if(option == 'Q'):
+				break;
+				
+	else: # something is wrong with bank server
+		clientSocket.close()
+		print "Error validating Bank Server Identity, quiting..."
 	# Close the connection to the server
 	clientSocket.close() 
 	

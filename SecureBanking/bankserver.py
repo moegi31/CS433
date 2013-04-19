@@ -75,6 +75,9 @@ if __name__ == "__main__":
 			cipheruserdets = client.recv(CLIENT_MSG_SIZE)
 			usercredentials = bankkey.decrypt(cipheruserdets)
 			print usercredentials
+		else:
+			# unable to verify atm identity, quit
+			client.close()
 
 		# Close the connection to the client
 		client.close()
