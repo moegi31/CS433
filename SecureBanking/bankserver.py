@@ -11,6 +11,10 @@ from time import gmtime, strftime
 # The client message size
 CLIENT_MSG_SIZE = 1024
 
+# client accounts hash table
+accounts = {'123456':'secret', \
+			'111111':'test'}
+
 def import_pub_atmkey(atmid):
 	try:
 		filename = "pubkeys/atmpubkey"+str(atmid)+".pem"
@@ -73,8 +77,13 @@ if __name__ == "__main__":
 			client.send(str(banksig))
 
 			cipheruserdets = client.recv(CLIENT_MSG_SIZE)
-			usercredentials = bankkey.decrypt(cipheruserdets)
-			print usercredentials
+			plainuserdets = bankkey.decrypt(cipheruserdets)
+			useracc= plainuserdets.split()
+
+			if useracc[0] not in accounts:
+				print "Record not found. Disconnecting user..."
+				client.close()
+		
 		else:
 			# unable to verify atm identity, quit
 			client.close()
