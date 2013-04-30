@@ -1,12 +1,28 @@
-To compile, simply, type ''make'' at the terminal (without the quotes).
+#### Name: Chris Gudea
+#### Email: pulala@gmail.com
+#### Language: C++
 
-Please do not forget to include a README file in your submission.
-It's worth 5 points.
+#### Compilation and Running
+To build, simply run
 
-Your README file should include:
+    make
 
-– Names and email addresses of all partners.
-– The programming language you use (e.g. C++ or Java)
-– How to execute your program.
-– Whether you implemented the extra credit.
-– Anything special about your submission that we should take note of.
+To remove binary and compilation files
+
+    make clean
+
+Running
+
+	./cipher <ALGORITHM> <KEY> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>
+
+where
+
+* ALGORITHM: the type of algorithm to use (DES, PLF)
+* KEY: the encryption key to use (must be 16 characters representing a 64-bit hexadecimal number).
+* ENC/DEC: whether to encrypt or decrypt, respectively.
+* INPUT FILE: the file from which to read the input.
+* OUTPUT FILE: the file to which to write the output.
+
+#### Extra Credit not implemented
+
+#### Notes
