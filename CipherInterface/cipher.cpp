@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cerrno>
 #include "CipherInterface.h"
+#include "Playfair.h"
 #include "DES.h"
 
 using namespace std;
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
 	}
 	
 	string plf_string("PLF");
-	string rts_string("DES");
+	string des_string("DES");
 	string enc_string("ENC");
 	string dec_string("DEC");
 
