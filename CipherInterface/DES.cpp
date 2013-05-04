@@ -1,5 +1,8 @@
 #include "DES.h"
 
+#define ENC 1
+#define DEC 0
+
 /**
  * Sets the key to use
  * @param key - the key to use
@@ -69,6 +72,20 @@ bool DES::setKey(const string& key)
 	return true;
 }
 
+/**
+ * Converts a binary C string into a C++ string
+ * @param cstring - the cstring
+ * @param len - the length of the cstring
+ * @return - the C++ string containing all the binary bytes
+ */
+string cstrToCpp(unsigned char* cstring, const int& len)
+{
+	/* Convert the cstring to CPP string */
+	string cppStr(cstring, cstring + len);
+	
+	return cppStr;
+}
+
 /**	
  * Encrypts a plaintext string
  * @param plaintext - the plaintext string
@@ -78,24 +95,35 @@ string DES::encrypt(const string& plaintext)
 {
 	//LOGIC:
 	//1. Check to make sure that the block is exactly 8 characters (i.e. 64 bits)
-	if (strlen(plaintext) != 8)
+	if (strlen(plaintext.c_str()) != 8)
 	{
 		printf("DES::encrypt: Block is not 8 characters!\n");
 		exit(0);
 	}
 	//2. Declare an array DES_LONG block[2];
 	DES_LONG block[2];
+	// declare ciphertext
+	unsigned char bytes[9];
+	// declare parts of plaintext to pass to ctol()
+	char ptext[9];
+	strncpy(ptext, plaintext.c_str(), 9);
 	//3. Use ctol() to convert the first 4 chars into long; store the result in block[0]
-	
-	//4. Use ctol() to convert the second 3 chars into long; store the resul in block[1]
+	block[0] = ctol((unsigned char*)ptext);
+	//4. Use ctol() to convert the second 4 chars into long; store the result in block[1]
+	block[1] = ctol((unsigned char*)(ptext+4));
 	//5. Perform des_encrypt1 in order to encrypt the block using this->key (see sample codes for details)
+	des_encrypt1(block, key, ENC);
 	//6. Convert the first ciphertext long to 4 characters using ltoc()
+	memset(bytes,0,9);
+	ltoc(block[0], bytes);
 	//7. Convert the second ciphertext long to 4 characters using ltoc()
+	ltoc(block[1], bytes+4);
 	//8. Save the results in the resulting 8-byte string (e.g. bytes[8])
+	bytes[8] = '\0';	
 	//9. Convert the string (e.g. bytes[8]) to a C++ string.
+	string result = cstrToCpp(bytes, 9);
 	//10.Return the C++ string
-	
-	return "";
+	return result;
 }
 
 /**
@@ -105,8 +133,37 @@ string DES::encrypt(const string& plaintext)
  */
 string DES::decrypt(const string& ciphertext)
 {
-	//LOCIG:
-	// Same logic as encrypt(), except in step 5. decrypt instead of encrypting
+	//LOGIC:
+	//1. Check to make sure that the block is exactly 8 characters (i.e. 64 bits)
+	if (strlen(ciphertext.c_str()) != 8)
+	{
+		printf("DES::decrypt: Block is not 8 characters!\n");
+		exit(0);
+	}
+	//2. Declare an array DES_LONG block[2];
+	DES_LONG block[2];
+	// declare ciphertext
+	unsigned char bytes[9];
+	// declare parts of ciphertext to pass to ctol()
+	char ctext[9];
+	strncpy(ctext, ciphertext.c_str(), 9);
+	//3. Use ctol() to convert the first 4 chars into long; store the result in block[0]
+	block[0] = ctol((unsigned char*)ctext);
+	//4. Use ctol() to convert the second 4 chars into long; store the result in block[1]
+	block[1] = ctol((unsigned char*)(ctext+4));
+	//5. Perform des_encrypt1 in order to encrypt the block using this->key (see sample codes for details)
+	des_encrypt1(block, key, DEC);
+	//6. Convert the first ciphertext long to 4 characters using ltoc()
+	memset(bytes,0,9);
+	ltoc(block[0], bytes);
+	//7. Convert the second ciphertext long to 4 characters using ltoc()
+	ltoc(block[1], bytes+4);
+	//8. Save the results in the resulting 8-byte string (e.g. bytes[8])
+	bytes[8] = '\0';	
+	//9. Convert the string (e.g. bytes[8]) to a C++ string.
+	string result = cstrToCpp(bytes, 9);
+	//10.Return the C++ string
+	return result;
 }
 
 /**
