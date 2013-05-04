@@ -85,6 +85,9 @@ def GetActivity():
     
     #print "Account activity is empty"  
     
+def VerifyAccount():
+    print "need to implement this"    
+    
 
 # Bank server prompt
 while True:
