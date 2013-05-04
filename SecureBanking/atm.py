@@ -59,6 +59,25 @@ if __name__ == "__main__":
 		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> "
 		exit(0)
 
+	# import key from private key dir
+	atmkey = import_priv_atmkey(1)	
+	# import bank public key
+	bankpubkey = import_pub_bankkey()
+	
+	# create communication socket
+	clientSocket = create_socket()	
+	
+	# generate atm signature
+	message = 'I can see the matrix'
+	digest = SHA256.new(message).digest()
+	atmsignature = atmkey.sign( digest, None)[0]
+	signature = bankpubkey.encrypt(atmsignature, None)[0]
+	print signature
+		
+	# TODO encrypt again with bank's public key and negotiate a session key
+	# send signature
+	clientSocket.send(str(signature))
+	
 	# get user ID
 	print "Welcome to SecureBanking\n"
 	userid = raw_input("User ID(6 digit ID): ")
@@ -72,22 +91,8 @@ if __name__ == "__main__":
 	passwd = getpass.getpass("enter password: ") 
 		
 
-	# import key from private key dir
-	atmkey = import_priv_atmkey(1)	
-	# create communication socket
-	clientSocket = create_socket()	
-
-	# generate atm signature
-	message = 'I can see the matrix'
-	digest = SHA256.new(message).digest()
-	signature = atmkey.sign( digest, None)[0]
-	# send signature
-	clientSocket.send(str(signature))
-
 	# receive bank signature
 	banksig = clientSocket.recv(SERVER_MSG_SIZE)
-	# import bank public key
-	bankpubkey = import_pub_bankkey()
 	
 	# bank identity is okay
 	if( bankpubkey.verify(digest, (long(banksig), )) ):

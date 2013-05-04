@@ -44,6 +44,9 @@ if __name__ == "__main__":
 	if len(sys.argv) != 2:
 		print "USAGE: ", sys.argv[0], " <PORT> "
 		exit(0)
+	# import atm pubkey and bank privkey
+	atmpubkey = import_pub_atmkey(1)
+	bankkey = import_priv_bankkey()
 
 	# Get the port number 
 	port = int(sys.argv[1]) 
@@ -61,17 +64,16 @@ if __name__ == "__main__":
 		client, address = listenSocket.accept() 
 		# Get client's public key
 		atmsig = client.recv(CLIENT_MSG_SIZE) 
-		
-		# import atm pubkey
-		atmpubkey = import_pub_atmkey(1)
-		
+
 		# verify atm identity
 		message = 'I can see the matrix'
 		digest = SHA256.new(message).digest()
+
+		# decrypt message with bank priv key
+		atmsig = bankkey.decrypt(atmsig)
+		# verify with atm pub key
 		if( atmpubkey.verify(digest, (long(atmsig), )) ):
 			print "ATM Identity Verified! wunderbar..."
-			# import bank private key
-			bankkey = import_priv_bankkey()
 			# generate signature using previous digest
 			banksig = bankkey.sign (digest, None)[0]
 			client.send(str(banksig))
