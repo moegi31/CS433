@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
 		while(true)
 		{
-			string input = get_file_contents(argv[4], offset, 100);
+			string input = get_file_contents(argv[4], offset, 8);
 			if(input.length() <=0) return 0;
 				
 			if (enc_string.compare(argv[3]) == 0)
