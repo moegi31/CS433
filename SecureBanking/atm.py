@@ -104,11 +104,13 @@ if __name__ == "__main__":
 	# Encrypt nonce2 and sent it back
 	ver_nonce2 = publicB.encrypt(dec_nonce2, None)	
 	clientSocket.send(pickle.dumps(ver_nonce2))
+	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# Send session key  
 	session_key = '123'
 	enc_session_key = publicB.encrypt(session_key, None)
 	clientSocket.send(pickle.dumps(enc_session_key))
+	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# And a signature with it
 	signed_session_key = privateA.sign(session_key, None)
