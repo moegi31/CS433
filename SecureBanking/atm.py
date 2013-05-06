@@ -118,36 +118,9 @@ def GetCommands():
 # define main function
 if __name__ == "__main__":
 	# Check the command line arguments
-<<<<<<< HEAD
-	if len(sys.argv) != 3:
-		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> "
-		exit(0)
-
-	# import key from private key dir
-	atmkey = import_priv_atmkey(1)	
-	# import bank public key
-	bankpubkey = import_pub_bankkey()
-	
-	# create communication socket
-	clientSocket = create_socket()	
-	
-	# generate atm signature
-	message = 'I can see the matrix'
-	digest = SHA256.new(message).digest()
-	atmsignature = atmkey.sign( digest, None)[0]
-	
-	# TODO encrypt again with bank's public key and negotiate a session key
-	# send signature
-	clientSocket.send(str(atmsignature))
-	
-	# get user ID
-	print "Welcome to SecureBanking\n"
-	userid = raw_input("User ID(6 digit ID): ")
-=======
 	if len(sys.argv) != 4:
 		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> <ATM ID> "
 		exit(0)		
->>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
 	
 	# import key from private key dir
 	privateA = import_priv_atmkey(sys.argv[3])
@@ -155,18 +128,12 @@ if __name__ == "__main__":
 	# import bank public key	
 	publicB = import_pub_bankkey()
 		
-<<<<<<< HEAD
-
-	# receive bank signature
-	banksig = clientSocket.recv(SERVER_MSG_SIZE)
-=======
 	# create communication socket
 	clientSocket = create_socket()
 	
 	AuthenticateServer()
 	
 	AuthenticateCustomer()
->>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
 	
 	GetCommands()
 		

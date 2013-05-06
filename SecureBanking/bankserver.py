@@ -238,17 +238,10 @@ if __name__ == "__main__":
 	if len(sys.argv) != 2:
 		print "USAGE: ", sys.argv[0], " <PORT> "
 		exit(0)
-<<<<<<< HEAD
-	# import atm pubkey and bank privkey
-	atmpubkey = import_pub_atmkey(1)
-	bankkey = import_priv_bankkey()
-
-=======
 		
 	# Import known keys
 	privateB = import_priv_bankkey()
 	
->>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
 	# Get the port number 
 	port = int(sys.argv[1])
 	 
@@ -266,39 +259,9 @@ if __name__ == "__main__":
 	# Service clients forever
 	while 1: 
 		# Accept a connection from the client
-<<<<<<< HEAD
-		client, address = listenSocket.accept() 
-		# Get client's public key
-		atmsig = client.recv(CLIENT_MSG_SIZE) 
-
-		# verify atm identity
-		message = 'I can see the matrix'
-		digest = SHA256.new(message).digest()
-
-		# verify with atm pub key
-		if( atmpubkey.verify(digest, (long(atmsig), )) ):
-			print "ATM Identity Verified! wunderbar..."
-			# generate signature using previous digest
-			banksig = bankkey.sign (digest, None)[0]
-			client.send(str(banksig))
-
-			cipheruserdets = client.recv(CLIENT_MSG_SIZE)
-			plainuserdets = bankkey.decrypt(cipheruserdets)
-			useracc= plainuserdets.split()
-
-			if useracc[0] not in accounts:
-				print "Record not found. Disconnecting user..."
-				client.close()
-		
-		else:
-			# unable to verify atm identity, quit
-			client.close()
-
-=======
 		client, address = listenSocket.accept()
 		
 		HandleClient()			
 		
->>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
 		# Close the connection to the client
 		client.close()
