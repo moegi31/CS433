@@ -71,12 +71,10 @@ if __name__ == "__main__":
 	message = 'I can see the matrix'
 	digest = SHA256.new(message).digest()
 	atmsignature = atmkey.sign( digest, None)[0]
-	signature = bankpubkey.encrypt(atmsignature, None)[0]
-	print signature
-		
+	
 	# TODO encrypt again with bank's public key and negotiate a session key
 	# send signature
-	clientSocket.send(str(signature))
+	clientSocket.send(str(atmsignature))
 	
 	# get user ID
 	print "Welcome to SecureBanking\n"

@@ -69,8 +69,6 @@ if __name__ == "__main__":
 		message = 'I can see the matrix'
 		digest = SHA256.new(message).digest()
 
-		# decrypt message with bank priv key
-		atmsig = bankkey.decrypt(atmsig)
 		# verify with atm pub key
 		if( atmpubkey.verify(digest, (long(atmsig), )) ):
 			print "ATM Identity Verified! wunderbar..."
