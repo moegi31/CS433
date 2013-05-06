@@ -14,6 +14,21 @@ from time import gmtime, strftime
 # The client message size
 CLIENT_MSG_SIZE = 2048
 
+# Database imports and variables
+import sqlite3
+conn = sqlite3.connect("BankDatabase.sqlite")
+cursor = conn.cursor()
+
+# Currency formatting
+import locale
+locale.setlocale( locale.LC_ALL, '' )
+
+# Datetime
+import datetime
+from dateutil import parser
+
+import string
+
 def import_pub_atmkey(atmid):
 	try:
 		filename = "keyBPublic.pub"
@@ -38,14 +53,10 @@ def import_priv_bankkey():
 		f.close()
 	return key
 	
-def Authenticate(client):
-	# This variable starts out as true is set to false if error occurs
-	authenticated = True 
-	
+def Authenticate(client):	
 	# Receive Nonce1
 	enc_nonce1 = client.recv(CLIENT_MSG_SIZE)
-	fas = pickle.loads(enc_nonce1) 
-	dec_nonce1 = privateB.decrypt(fas)
+	dec_nonce1 = privateB.decrypt(pickle.loads(enc_nonce1))
 
 	# Send back Nonce1 and Nonce2
 	nonce2 = 'ohhi'
@@ -55,31 +66,61 @@ def Authenticate(client):
 	client.send(pickle.dumps(ver_nonce1))
 	client.send(pickle.dumps(enc_nonce2))
 
-	# Receive Nonce2
+	# Receive nonce2, session, and sig of session
 	ver_nonce2 = client.recv(CLIENT_MSG_SIZE)
 	client.send("Thank you")
 	enc_session_key = client.recv(CLIENT_MSG_SIZE)
 	client.send("Thank you")
 	dec_session_key = client.recv(CLIENT_MSG_SIZE)
 			
-	# commet here
+	# Verify nonce2
 	dec_ver_nonce2 = privateB.decrypt(pickle.loads(ver_nonce2))
 
-	#print dec_ver_nonce2
-
 	if dec_ver_nonce2 != nonce2:
-		authenticated = False					
+		return False					
 		
 	# Retrieve session_key
 	session_key = privateB.decrypt(pickle.loads(enc_session_key))
 
 	# verifiy the signature matches
-	if (publicA.verify(session_key, pickle.loads(dec_session_key))):
-		print "Session key established!"	
-	else:
-		authenticated = False
+	if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
+		return False
 	
-	return authenticated
+	return True
+	
+	
+def AuthenticateCustomer():
+	
+	AccountId = 123456
+	Password = 'secret'
+	
+	# Query account from 
+	sql = "SELECT AccountID, Password FROM ClientAccounts WHERE AccountId=?"
+	cursor.execute(sql, [AccountId])
+	account = cursor.fetchone()
+	
+	# Check to see if account exists
+	if account is None:
+		return False
+	elif account[0] == AccountId and account[1] == Password:
+		return True
+	else:
+		return False
+		
+def HandleClient():
+		# Verify ATM connection	
+		if ( Authenticate(client) == False ):
+			print "Failed to authenticate"
+			return
+		else:
+			print "Authenticated"
+		
+		# Verify customer using ATM
+		if ( AuthenticateCustomer() == False ):
+			print "Failed to authenticate customer"
+			return
+		else:
+			print "Customer has been verified"		
 		
 
 if __name__ == "__main__":
@@ -111,13 +152,7 @@ if __name__ == "__main__":
 		# Accept a connection from the client
 		client, address = listenSocket.accept()
 		
-		authenticated = Authenticate(client)
-			
-		if ( authenticated == False ):
-			print "Failed to authenticate"
-		else:
-			print "Authenticated"
-			
+		HandleClient()			
 		
 		# Close the connection to the client
 		client.close()
