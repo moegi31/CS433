@@ -3,6 +3,9 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Hash import SHA256
 
+# Sending crypto across the wire
+import pickle
+
 # includes for sockets
 import socket 
 import sys
@@ -14,7 +17,12 @@ import getpass
 import re
 
 # defined values
-SERVER_MSG_SIZE = 1024
+SERVER_MSG_SIZE = 2048
+import os
+filepath = os.getcwd()
+
+# Password prompt
+from getpass import getpass
 
 def create_socket():
 	# Get the host name (or IP)
@@ -30,7 +38,7 @@ def create_socket():
 
 def import_priv_atmkey(atmid):
 	try:
-		filename = "privkeys/atmkey"+str(atmid)+".pem"
+		filename = filepath + "/atmKeys/atm" + atmid + ".prv"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -42,7 +50,7 @@ def import_priv_atmkey(atmid):
 
 def import_pub_bankkey():
 	try:
-		filename = "pubkeys/bankkey.pem"
+		filename = filepath + "/atmKeys/bank.pub"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -51,10 +59,66 @@ def import_pub_bankkey():
 		key = RSA.importKey(f.read())
 		f.close()
 	return key
+	
+def AuthenticateServer():
+	# Identify to the server the atmid
+	clientSocket.send(sys.argv[3])
+	clientSocket.recv(SERVER_MSG_SIZE)
+	
+	# Send nonce1
+	nonce1 = 'helloworld'
+	enc_nonce1 = publicB.encrypt(nonce1, None)
+	
+	clientSocket.send(pickle.dumps(enc_nonce1))
+	
+	# Recieve nonce1 back	
+	dec_ver_nonce1 = clientSocket.recv(SERVER_MSG_SIZE)
+	fas = pickle.loads(dec_ver_nonce1)
+	ver_nonce1 = privateA.decrypt(fas)
+	
+	if nonce1 != ver_nonce1:
+		print "nonce1 is wrong!"
+		authenticated = False
+		
+	# Retrieve nonce2
+	enc_nonce2 = clientSocket.recv(SERVER_MSG_SIZE)
+	fas = pickle.loads(enc_nonce2)
+	dec_nonce2 = privateA.decrypt(fas)
+	
+	# Encrypt nonce2 and sent it back
+	ver_nonce2 = publicB.encrypt(dec_nonce2, None)	
+	clientSocket.send(pickle.dumps(ver_nonce2))
+	clientSocket.recv(SERVER_MSG_SIZE)
+	
+	# Send session key  
+	session_key = '123'
+	enc_session_key = publicB.encrypt(session_key, None)
+	clientSocket.send(pickle.dumps(enc_session_key))
+	clientSocket.recv(SERVER_MSG_SIZE)
+	
+	# And a signature with it
+	signed_session_key = privateA.sign(session_key, None)
+	#print signed_session_key
+	clientSocket.send(pickle.dumps(signed_session_key))	
+
+def AuthenticateCustomer():
+	# Get account
+	AccountId = raw_input("AccountID: ")
+	clientSocket.send(AccountId)
+	clientSocket.recv(SERVER_MSG_SIZE)
+	    
+	Password = getpass()
+	clientSocket.send(Password)
+	clientSocket.recv(SERVER_MSG_SIZE)
+	
+def GetCommands():
+		    
+    
 
 # define main function
 if __name__ == "__main__":
 	# Check the command line arguments
+<<<<<<< HEAD
 	if len(sys.argv) != 3:
 		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> "
 		exit(0)
@@ -81,46 +145,31 @@ if __name__ == "__main__":
 	# get user ID
 	print "Welcome to SecureBanking\n"
 	userid = raw_input("User ID(6 digit ID): ")
+=======
+	if len(sys.argv) != 4:
+		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> <ATM ID> "
+		exit(0)		
+>>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
 	
-	# make sure input has only digits and has six digits
-	while (not userid.isdigit()) or (len(userid) != 6 ):
-		print "Please make sure your user id is 6 digits and only contains digits"
-		userid = raw_input("User ID(6 digit ID): ")
+	# import key from private key dir
+	privateA = import_priv_atmkey(sys.argv[3])
 	
-	# get user password
-	passwd = getpass.getpass("enter password: ") 
+	# import bank public key	
+	publicB = import_pub_bankkey()
 		
+<<<<<<< HEAD
 
 	# receive bank signature
 	banksig = clientSocket.recv(SERVER_MSG_SIZE)
+=======
+	# create communication socket
+	clientSocket = create_socket()
 	
-	# bank identity is okay
-	if( bankpubkey.verify(digest, (long(banksig), )) ):
-		print "\nBank Identity Verified!"
-		# send userid/passwd
-		cipheruserdets = bankpubkey.encrypt(userid+" "+passwd, None)[0]
-		clientSocket.send(cipheruserdets)
+	AuthenticateServer()
+	
+	AuthenticateCustomer()
+>>>>>>> e5d2fc5a0b06e625bd70e33b8efd762d5ac66621
+	
+	GetCommands()
 		
-		while (1):
-			print "\nPlease select from the following options:\n"+\
-			"[B] display the current balance of the account\n"+\
-			"[D] deposit money\n"+\
-			"[W] withdrawals\n"+\
-			"[A] account activities\n"+\
-			"[Q] quit\n"
-
-			option = raw_input("Please enter selection as single letter: ").upper()
-			while (len(option) !=1) or (not re.match("[ABDWQ]", option)):
-				print "Please enter option as single letter (either A,B,D,W or Q)"
-				option = raw_input("Please enter selection as single letter: ").upper() 
-			
-			if(option == 'Q'):
-				break;
-				
-	else: # something is wrong with bank server
-		clientSocket.close()
-		print "Error validating Bank Server Identity, quiting..."
-	# Close the connection to the server
 	clientSocket.close() 
-	
-
