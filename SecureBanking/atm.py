@@ -18,6 +18,11 @@ import re
 
 # defined values
 SERVER_MSG_SIZE = 2048
+import os
+filepath = os.getcwd()
+
+# Password prompt
+from getpass import getpass
 
 def create_socket():
 	# Get the host name (or IP)
@@ -33,7 +38,7 @@ def create_socket():
 
 def import_priv_atmkey(atmid):
 	try:
-		filename = "keyBPrivate.prv"
+		filename = filepath + "/atmKeys/atm" + atmid + ".prv"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -45,7 +50,7 @@ def import_priv_atmkey(atmid):
 
 def import_pub_bankkey():
 	try:
-		filename = "keyAPublic.pub"
+		filename = filepath + "/atmKeys/bank.pub"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -54,25 +59,11 @@ def import_pub_bankkey():
 		key = RSA.importKey(f.read())
 		f.close()
 	return key
-
-# define main function
-if __name__ == "__main__":
-	# Check the command line arguments
-	if len(sys.argv) != 3:
-		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> "
-		exit(0)		
-		
-	# This variable starts out as true is set to false if error occurs
-	authenticated = True
 	
-	# import key from private key dir
-	privateA = import_priv_atmkey(1)
-	
-	# import bank public key	
-	publicB = import_pub_bankkey()
-		
-	# create communication socket
-	clientSocket = create_socket()
+def AuthenticateServer():
+	# Identify to the server the atmid
+	clientSocket.send(sys.argv[3])
+	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# Send nonce1
 	nonce1 = 'helloworld'
@@ -85,21 +76,14 @@ if __name__ == "__main__":
 	fas = pickle.loads(dec_ver_nonce1)
 	ver_nonce1 = privateA.decrypt(fas)
 	
-	print ver_nonce1
-	
 	if nonce1 != ver_nonce1:
 		print "nonce1 is wrong!"
 		authenticated = False
-	else:
-		print "nonce1 is correct!"
 		
 	# Retrieve nonce2
 	enc_nonce2 = clientSocket.recv(SERVER_MSG_SIZE)
 	fas = pickle.loads(enc_nonce2)
 	dec_nonce2 = privateA.decrypt(fas)
-	
-	# used for debugging
-	print dec_nonce2
 	
 	# Encrypt nonce2 and sent it back
 	ver_nonce2 = publicB.encrypt(dec_nonce2, None)	
@@ -117,5 +101,40 @@ if __name__ == "__main__":
 	#print signed_session_key
 	clientSocket.send(pickle.dumps(signed_session_key))	
 
+def AuthenticateCustomer():
+	# Get account
+	AccountId = raw_input("AccountID: ")
+	clientSocket.send(AccountId)
+	clientSocket.recv(SERVER_MSG_SIZE)
+	    
+	Password = getpass()
+	clientSocket.send(Password)
+	clientSocket.recv(SERVER_MSG_SIZE)
+	
+def GetCommands():
+		    
+    
+
+# define main function
+if __name__ == "__main__":
+	# Check the command line arguments
+	if len(sys.argv) != 4:
+		print "USAGE: ", sys.argv[0], " <SERVER IP> <SERVER PORT> <ATM ID> "
+		exit(0)		
+	
+	# import key from private key dir
+	privateA = import_priv_atmkey(sys.argv[3])
+	
+	# import bank public key	
+	publicB = import_pub_bankkey()
+		
+	# create communication socket
+	clientSocket = create_socket()
+	
+	AuthenticateServer()
+	
+	AuthenticateCustomer()
+	
+	GetCommands()
 		
 	clientSocket.close() 

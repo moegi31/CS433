@@ -27,11 +27,14 @@ locale.setlocale( locale.LC_ALL, '' )
 import datetime
 from dateutil import parser
 
+import os
+filepath = os.getcwd()
+
 import string
 
 def import_pub_atmkey(atmid):
 	try:
-		filename = "keyBPublic.pub"
+		filename = filepath + "/bankKeys/atm" + atmid + ".pub"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -43,7 +46,7 @@ def import_pub_atmkey(atmid):
 
 def import_priv_bankkey():
 	try:
-		filename = "keyAPrivate.prv"
+		filename = filepath + "/bankKeys/bank.prv"
 		f = open(filename)
 	except IOError as e:
 		print e
@@ -53,7 +56,12 @@ def import_priv_bankkey():
 		f.close()
 	return key
 	
-def Authenticate(client):	
+def Authenticate(client):
+	# Receive atm and set the public key
+	atmID = client.recv(CLIENT_MSG_SIZE)
+	client.send("Thank you")
+	publicA = import_pub_atmkey(atmID)
+		
 	# Receive Nonce1
 	enc_nonce1 = client.recv(CLIENT_MSG_SIZE)
 	dec_nonce1 = privateB.decrypt(pickle.loads(enc_nonce1))
@@ -91,8 +99,11 @@ def Authenticate(client):
 	
 def AuthenticateCustomer():
 	
-	AccountId = 123456
-	Password = 'secret'
+	AccountId = int(client.recv(CLIENT_MSG_SIZE))
+	client.send("Thank you")
+	
+	Password = client.recv(CLIENT_MSG_SIZE)
+	client.send("Thank you")
 	
 	# Query account from 
 	sql = "SELECT AccountID, Password FROM ClientAccounts WHERE AccountId=?"
@@ -102,9 +113,11 @@ def AuthenticateCustomer():
 	# Check to see if account exists
 	if account is None:
 		return False
+		print "1"
 	elif account[0] == AccountId and account[1] == Password:
 		return True
 	else:
+		print "2"
 		return False
 		
 def HandleClient():
@@ -120,7 +133,104 @@ def HandleClient():
 			print "Failed to authenticate customer"
 			return
 		else:
-			print "Customer has been verified"		
+			print "Customer has been verified"
+			
+		 GetCommands()
+
+def GetCommands():
+	while True:
+		if command == 'b':
+			# Get balance
+			GetBalance()
+        
+		elif command == 'd':
+			# Make deposit
+			MakeDeposit()
+        
+		elif command == 'w':
+			# Make withdrawl
+			MakeWithdrawl()
+        
+		elif command == 'a':
+			# Get activity
+			GetActivity()
+		   
+		elif command == 'q':
+			# Quit
+			print "Quiting program."
+			break
+		
+		else:
+			print "Unrecognized command.  Please try again."
+			
+			
+def GetBalance():
+    
+    # Display new balance
+    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+    cursor.execute(sql, [AccountId])
+    balance = cursor.fetchone()[0]
+    print "Balance is " + locale.currency(balance)
+    
+def MakeDeposit():
+    # Get amount
+    amount = raw_input("Amount: ")
+    
+    # Update balance in database
+    sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
+    cursor.execute(sql, [amount, AccountId])
+    conn.commit()
+    
+    # Get new balance value
+    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+    cursor.execute(sql, [AccountId])
+    balance = cursor.fetchone()[0]
+    
+    # Insert activity in log
+    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+    cursor.execute(sql, [AccountId, "Deposit", amount, datetime.datetime.now(), balance])
+    conn.commit()  
+    
+    # Display new balance
+    GetBalance()
+    
+def MakeWithdrawl():
+    # Get amount
+    amount = raw_input("Amount: ")
+    
+    # Update balance in database
+    sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
+    cursor.execute(sql, [amount, AccountId])
+    conn.commit()
+    
+    # Get new balance value
+    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+    cursor.execute(sql, [AccountId])
+    balance = cursor.fetchone()[0]    
+    
+    # Insert activity in log
+    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+    cursor.execute(sql, [AccountId, "Withdrawl", amount, datetime.datetime.now(), balance])
+    conn.commit()    
+    
+    # Display new balance
+    GetBalance()
+    
+def GetActivity():
+	# Get transactions
+    sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
+    cursor.execute(sql, [AccountId])
+    balance = cursor.fetchall()
+    
+    # Print transactions
+    print string.ljust("Activity", 10), string.ljust("Amount", 10), string.ljust("Balance", 10), string.ljust("Time", 10) 
+    for row in balance:
+        # Make the format pretty
+        time = parser.parse(row[3])
+        formattedTime = time.strftime("%Y-%m-%d %H:%M")
+        amount = locale.currency(row[1])
+        balance1 = locale.currency(row[2])
+        print string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10) 
 		
 
 if __name__ == "__main__":
@@ -131,7 +241,6 @@ if __name__ == "__main__":
 		
 	# Import known keys
 	privateB = import_priv_bankkey()
-	publicA = import_pub_atmkey(1)
 	
 	# Get the port number 
 	port = int(sys.argv[1])

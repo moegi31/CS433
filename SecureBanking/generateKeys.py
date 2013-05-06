@@ -8,23 +8,33 @@ import Crypto
 # Random number generator
 random_generator = Crypto.Random.new().read
 
-# Generate two keys
-keyA = RSA.generate(1024, random_generator)
-keyB = RSA.generate(1024, random_generator)
+# Generate keys
+bank = RSA.generate(1024, random_generator)
+atm1 = RSA.generate(1024, random_generator)
+atm2 = RSA.generate(1024, random_generator)
 
 # Save these keys
-f = open('keyAPrivate.prv','w')
-f.write(keyA.exportKey())
+f = open('bankKeys/bank.prv','w')
+f.write(bank.exportKey())
 f.close()
 
-f = open('keyAPublic.pub','w')
-f.write(keyA.publickey().exportKey())
+f = open('atmKeys/bank.pub','w')
+f.write(bank.publickey().exportKey())
 f.close()
 
-f = open('keyBPrivate.prv','w')
-f.write(keyB.exportKey())
+f = open('atmKeys/atm1.prv','w')
+f.write(atm1.exportKey())
 f.close()
 
-f = open('keyBPublic.pub','w')
-f.write(keyB.publickey().exportKey())
+f = open('bankKeys/atm1.pub','w')
+f.write(atm1.publickey().exportKey())
 f.close()
+
+f = open('atmKeys/atm2.prv','w')
+f.write(atm2.exportKey())
+f.close()
+
+f = open('bankKeys/atm2.pub','w')
+f.write(atm2.publickey().exportKey())
+f.close()
+
