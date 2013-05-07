@@ -32,6 +32,11 @@ filepath = os.getcwd()
 
 import string
 
+# includes for Threading
+from multiprocessing import Process
+MAX_ATM_THREADS = 2
+
+
 def import_pub_atmkey(atmid):
 	try:
 		filename = filepath + "/bankKeys/atm" + atmid + ".pub"
@@ -56,14 +61,14 @@ def import_priv_bankkey():
 		f.close()
 	return key
 	
-def Authenticate(client):
+def Authenticate(atm_client):
 	# Receive atm and set the public key
-	atmID = client.recv(CLIENT_MSG_SIZE)
-	client.send("Thank you")
+	atmID = atm_client.recv(CLIENT_MSG_SIZE)
+	atm_client.send("Thank you")
 	publicA = import_pub_atmkey(atmID)
 		
 	# Receive Nonce1
-	enc_nonce1 = client.recv(CLIENT_MSG_SIZE)
+	enc_nonce1 = atm_client.recv(CLIENT_MSG_SIZE)
 	dec_nonce1 = privateB.decrypt(pickle.loads(enc_nonce1))
 
 	# Send back Nonce1 and Nonce2
@@ -71,15 +76,15 @@ def Authenticate(client):
 	ver_nonce1 = publicA.encrypt(dec_nonce1, None)
 	enc_nonce2 = publicA.encrypt(nonce2, None)
 
-	client.send(pickle.dumps(ver_nonce1))
-	client.send(pickle.dumps(enc_nonce2))
+	atm_client.send(pickle.dumps(ver_nonce1))
+	atm_client.send(pickle.dumps(enc_nonce2))
 
 	# Receive nonce2, session, and sig of session
-	ver_nonce2 = client.recv(CLIENT_MSG_SIZE)
-	client.send("Thank you")
-	enc_session_key = client.recv(CLIENT_MSG_SIZE)
-	client.send("Thank you")
-	dec_session_key = client.recv(CLIENT_MSG_SIZE)
+	ver_nonce2 = atm_client.recv(CLIENT_MSG_SIZE)
+	atm_client.send("Thank you")
+	enc_session_key = atm_client.recv(CLIENT_MSG_SIZE)
+	atm_client.send("Thank you")
+	dec_session_key = atm_client.recv(CLIENT_MSG_SIZE)
 			
 	# Verify nonce2
 	dec_ver_nonce2 = privateB.decrypt(pickle.loads(ver_nonce2))
@@ -97,13 +102,13 @@ def Authenticate(client):
 	return True
 	
 	
-def AuthenticateCustomer():
+def AuthenticateCustomer(atm_client):
 	
-	AccountId = int(client.recv(CLIENT_MSG_SIZE))
-	client.send("Thank you")
+	AccountId = int(atm_client.recv(CLIENT_MSG_SIZE))
+	atm_client.send("Thank you")
 	
-	Password = client.recv(CLIENT_MSG_SIZE)
-	client.send("Thank you")
+	Password = atm_client.recv(CLIENT_MSG_SIZE)
+	atm_client.send("Thank you")
 	
 	# Query account from 
 	sql = "SELECT AccountID, Password FROM ClientAccounts WHERE AccountId=?"
@@ -120,35 +125,35 @@ def AuthenticateCustomer():
 		print "2"
 		return False
 		
-def HandleClient():
+def HandleClient(atm_client):
 		# Verify ATM connection	
-		if ( Authenticate(client) == False ):
+		if ( Authenticate(atm_client) == False ):
 			print "Failed to authenticate"
 			return
 		else:
 			print "Authenticated"
 		
 		# Verify customer using ATM
-		result = AuthenticateCustomer()
+		result = AuthenticateCustomer(atm_client)
 		if ( result == False ):
 			print "Failed to authenticate customer"
 			return
 		else:
 			print "Customer has been verified"
 		AccountId = int(result)
-		GetCommands(AccountId)
+		GetCommands(AccountId, atm_client)
 		
-def GetCommands(AccountId):
+def GetCommands(AccountId, atm_client):
 	while 1:
-		command = client.recv(CLIENT_MSG_SIZE)
+		command = atm_client.recv(CLIENT_MSG_SIZE)
 
 		if command == 'b':
 			# Get balance
-			GetBalance(AccountId)
+			GetBalance(AccountId, atm_client)
         
 		elif command == 'd':
 			# Make deposit
-			MakeDeposit(AccountId)
+			MakeDeposit(AccountId, atm_client)
         
 		elif command == 'w':
 			# Make withdrawl
@@ -167,19 +172,19 @@ def GetCommands(AccountId):
 			print "Unrecognized command.  Please try again."
 			
 			
-def GetBalance(AccountId):
+def GetBalance(AccountId, atm_client):
     
     # Display new balance
     sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchone()[0]
     # print "Balance is " + locale.currency(balance)
-    client.send("Balance is " + locale.currency(balance))
+    atm_client.send("Balance is " + locale.currency(balance))
     
-def MakeDeposit(AccountId):
-    client.send("thankyou")
+def MakeDeposit(AccountId, atm_client):
+    atm_client.send("thankyou")
     # Get amount
-    amount = client.recv(CLIENT_MSG_SIZE)
+    amount = atm_client.recv(CLIENT_MSG_SIZE)
     
     # Update balance in database
     sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
@@ -197,13 +202,13 @@ def MakeDeposit(AccountId):
     conn.commit()  
     
     # Display new balance
-    GetBalance(AccountId)
+    GetBalance(AccountId, atm_client)
     
-def MakeWithdrawl(AccountId):
-	client.send("thankyou")
+def MakeWithdrawl(AccountId, atm_client):
+	atm_client.send("thankyou")
 	
 	# Get amount
-	amount = client.recv(CLIENT_MSG_SIZE)
+	amount = atm_client.recv(CLIENT_MSG_SIZE)
 	
 	
 	# Update balance in database
@@ -241,15 +246,7 @@ def GetActivity(AccountId):
         print string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10) 
 		
 
-if __name__ == "__main__":
-	# Check the command line arguments
-	if len(sys.argv) != 2:
-		print "USAGE: ", sys.argv[0], " <PORT> "
-		exit(0)
-		
-	# Import known keys
-	privateB = import_priv_bankkey()
-	
+def atm_process():
 	# Get the port number 
 	port = int(sys.argv[1])
 	 
@@ -269,7 +266,26 @@ if __name__ == "__main__":
 		# Accept a connection from the client
 		client, address = listenSocket.accept()
 		
-		HandleClient()			
+		HandleClient(client)			
 		
 		# Close the connection to the client
 		client.close()
+
+if __name__ == "__main__":
+	# Check the command line arguments
+	if len(sys.argv) != 2:
+		print "USAGE: ", sys.argv[0], " <PORT> "
+		exit(0)
+		
+	# Import known keys
+	privateB = import_priv_bankkey()
+	
+	# start thread process
+	processes = []
+	#for i in range(MAX_ATM_THREADS):
+	#	processes.append( Process ( target=atm_process, args=() ) )
+	#	processes[i].start()
+	#	processes[i].join()
+	
+	atm_process()
+	print "All Done!"	
