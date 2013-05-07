@@ -246,7 +246,15 @@ def GetActivity(AccountId):
         print string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10) 
 		
 
-def atm_process():
+if __name__ == "__main__":
+	# Check the command line arguments
+	if len(sys.argv) != 2:
+		print "USAGE: ", sys.argv[0], " <PORT> "
+		exit(0)
+		
+	# Import known keys
+	privateB = import_priv_bankkey()
+	
 	# Get the port number 
 	port = int(sys.argv[1])
 	 
@@ -270,22 +278,3 @@ def atm_process():
 		
 		# Close the connection to the client
 		client.close()
-
-if __name__ == "__main__":
-	# Check the command line arguments
-	if len(sys.argv) != 2:
-		print "USAGE: ", sys.argv[0], " <PORT> "
-		exit(0)
-		
-	# Import known keys
-	privateB = import_priv_bankkey()
-	
-	# start thread process
-	processes = []
-	#for i in range(MAX_ATM_THREADS):
-	#	processes.append( Process ( target=atm_process, args=() ) )
-	#	processes[i].start()
-	#	processes[i].join()
-	
-	atm_process()
-	print "All Done!"	

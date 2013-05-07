@@ -107,7 +107,7 @@ def AuthenticateCustomer():
 
 	# make sure input has only digits and has six digits
 	while (not AccountId.isdigit()) or (len(AccountId) != 6 ):
-		print "Please make sure your user id is 6 digits and only contains digits"
+		print "Please make sure your user id is 6 digits and only contains numbers"
 		AccountId = raw_input("User ID(6 digit ID): ")
 	
 	# send account id
