@@ -103,17 +103,32 @@ def AuthenticateServer():
 
 def AuthenticateCustomer():
 	# Get account
-	AccountId = raw_input("AccountID: ")
+	AccountId = raw_input("User ID(6 digit ID): ")
+
+	# make sure input has only digits and has six digits
+	while (not AccountId.isdigit()) or (len(AccountId) != 6 ):
+		print "Please make sure your user id is 6 digits and only contains digits"
+		AccountId = raw_input("User ID(6 digit ID): ")
+	
+	# send account id
 	clientSocket.send(AccountId)
 	clientSocket.recv(SERVER_MSG_SIZE)
-	    
+	
+	# get password
 	Password = getpass()
+	# send password
 	clientSocket.send(Password)
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
 def GetCommands():
 	
 	while True:
+		print "\nPlease select from the following options:\n"+\
+		"[B] display the current balance of the account\n"+\
+		"[D] deposit money\n"+\
+		"[W] withdrawals\n"+\
+		"[A] account activities\n"+\
+		"[Q] quit\n"	
 		# Prompt to accept and send commands to server
 		command = raw_input("prompt> ")
 		
