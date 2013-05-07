@@ -112,7 +112,21 @@ def AuthenticateCustomer():
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
 def GetCommands():
-		    
+	
+	while True:
+		# Prompt to accept and send commands to server
+		command = raw_input("prompt> ")
+		
+		command = command.lower()
+		
+		clientSocket.send(command)
+		serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+		
+		print serverResponse
+		
+		if command == "q":
+			break
+    		    
     
 
 # define main function

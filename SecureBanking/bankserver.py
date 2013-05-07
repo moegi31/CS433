@@ -115,7 +115,7 @@ def AuthenticateCustomer():
 		return False
 		print "1"
 	elif account[0] == AccountId and account[1] == Password:
-		return True
+		return AccountId
 	else:
 		print "2"
 		return False
@@ -129,19 +129,22 @@ def HandleClient():
 			print "Authenticated"
 		
 		# Verify customer using ATM
-		if ( AuthenticateCustomer() == False ):
+		result = AuthenticateCustomer()
+		if ( result == False ):
 			print "Failed to authenticate customer"
 			return
 		else:
 			print "Customer has been verified"
-			
-		 GetCommands()
-
-def GetCommands():
+		AccountId = int(result)
+		GetCommands(AccountId)
+		
+def GetCommands(AccountId):
 	while True:
+		command = client.recv(CLIENT_MSG_SIZE)
+
 		if command == 'b':
 			# Get balance
-			GetBalance()
+			GetBalance(AccountId)
         
 		elif command == 'd':
 			# Make deposit
@@ -164,13 +167,14 @@ def GetCommands():
 			print "Unrecognized command.  Please try again."
 			
 			
-def GetBalance():
+def GetBalance(AccountId):
     
     # Display new balance
     sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchone()[0]
-    print "Balance is " + locale.currency(balance)
+    # print "Balance is " + locale.currency(balance)
+    client.send("Balance is " + locale.currency(balance))
     
 def MakeDeposit():
     # Get amount
