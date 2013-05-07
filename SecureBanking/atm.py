@@ -121,7 +121,17 @@ def GetCommands():
 		
 		clientSocket.send(command)
 		serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
-		
+        
+		if command == "d":
+			command = raw_input("Enter amount> ")
+			clientSocket.send(command)
+			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+			
+		if command == "w":
+			command = raw_input("Enter amount> ")
+			clientSocket.send(command)
+			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)			
+			          
 		print serverResponse
 		
 		if command == "q":

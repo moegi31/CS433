@@ -139,7 +139,7 @@ def HandleClient():
 		GetCommands(AccountId)
 		
 def GetCommands(AccountId):
-	while True:
+	while 1:
 		command = client.recv(CLIENT_MSG_SIZE)
 
 		if command == 'b':
@@ -148,15 +148,15 @@ def GetCommands(AccountId):
         
 		elif command == 'd':
 			# Make deposit
-			MakeDeposit()
+			MakeDeposit(AccountId)
         
 		elif command == 'w':
 			# Make withdrawl
-			MakeWithdrawl()
+			MakeWithdrawl(AccountId)
         
 		elif command == 'a':
 			# Get activity
-			GetActivity()
+			GetActivity(AccountId)
 		   
 		elif command == 'q':
 			# Quit
@@ -176,9 +176,10 @@ def GetBalance(AccountId):
     # print "Balance is " + locale.currency(balance)
     client.send("Balance is " + locale.currency(balance))
     
-def MakeDeposit():
+def MakeDeposit(AccountId):
+    client.send("thankyou")
     # Get amount
-    amount = raw_input("Amount: ")
+    amount = client.recv(CLIENT_MSG_SIZE)
     
     # Update balance in database
     sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
@@ -196,31 +197,34 @@ def MakeDeposit():
     conn.commit()  
     
     # Display new balance
-    GetBalance()
+    GetBalance(AccountId)
     
-def MakeWithdrawl():
-    # Get amount
-    amount = raw_input("Amount: ")
+def MakeWithdrawl(AccountId):
+	client.send("thankyou")
+	
+	# Get amount
+	amount = client.recv(CLIENT_MSG_SIZE)
+	
+	
+	# Update balance in database
+	sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
+	cursor.execute(sql, [amount, AccountId])
+	conn.commit()
     
-    # Update balance in database
-    sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
-    cursor.execute(sql, [amount, AccountId])
-    conn.commit()
+	# Get new balance value
+	sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+	cursor.execute(sql, [AccountId])
+	balance = cursor.fetchone()[0]    
+
+	# Insert activity in log
+	sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+	cursor.execute(sql, [AccountId, "Withdrawl", amount, datetime.datetime.now(), balance])
+	conn.commit()    
+
+	# Display new balance
+	GetBalance(AccountId)
     
-    # Get new balance value
-    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
-    cursor.execute(sql, [AccountId])
-    balance = cursor.fetchone()[0]    
-    
-    # Insert activity in log
-    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
-    cursor.execute(sql, [AccountId, "Withdrawl", amount, datetime.datetime.now(), balance])
-    conn.commit()    
-    
-    # Display new balance
-    GetBalance()
-    
-def GetActivity():
+def GetActivity(AccountId):
 	# Get transactions
     sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
