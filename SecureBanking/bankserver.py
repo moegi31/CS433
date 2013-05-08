@@ -111,6 +111,7 @@ def AuthenticateCustomer(atm_client, session_key):
 	atm_client.send("Thank you")
 	
 	Password = atm_client.recv(CLIENT_MSG_SIZE)
+	Password = triple_des(session_key).decrypt(Password, padmode=2)
 	atm_client.send("Thank you")
 	
 	# Query account from 
@@ -145,15 +146,18 @@ def HandleClient(atm_client):
 		else:
 			print "Customer has been verified"
 		AccountId = int(result)
-		GetCommands(AccountId, atm_client)
+		GetCommands(AccountId, atm_client, session_key)
 		
-def GetCommands(AccountId, atm_client):
+def GetCommands(AccountId, atm_client, session_key):
 	while 1:
+		# Receive encrypted command from client and decrypt it.  
 		command = atm_client.recv(CLIENT_MSG_SIZE)
-
+		command = triple_des(session_key).decrypt(command, padmode=2)
+		
+		# Process the command accordingly
 		if command == 'b':
 			# Get balance
-			GetBalance(AccountId, atm_client)
+			GetBalance(AccountId, atm_client, session_key)
         
 		elif command == 'd':
 			# Make deposit
@@ -176,16 +180,17 @@ def GetCommands(AccountId, atm_client):
 			print "Unrecognized command.  Please try again."
 			
 			
-def GetBalance(AccountId, atm_client):
+def GetBalance(AccountId, atm_client, session_key):
     
     # Display new balance
     sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchone()[0]
     # print "Balance is " + locale.currency(balance)
-    atm_client.send("Balance is " + locale.currency(balance))
+    balanceMessage = "Balance is " + locale.currency(balance)
+    atm_client.send(triple_des(session_key).encrypt(balanceMessage, padmode=2))
     
-def MakeDeposit(AccountId, atm_client):
+def MakeDeposit(AccountId, atm_client, session_key):
     atm_client.send("thankyou")
     # Get amount
     amount = atm_client.recv(CLIENT_MSG_SIZE)
@@ -206,9 +211,9 @@ def MakeDeposit(AccountId, atm_client):
     conn.commit()  
     
     # Display new balance
-    GetBalance(AccountId, atm_client)
+    GetBalance(AccountId, atm_client, session_key)
     
-def MakeWithdrawl(AccountId, atm_client):
+def MakeWithdrawl(AccountId, atm_client, session_key):
 	atm_client.send("thankyou")
 	
 	# Get amount
@@ -230,9 +235,9 @@ def MakeWithdrawl(AccountId, atm_client):
 	conn.commit()    
 
 	# Display new balance
-	GetBalance(AccountId, atm_client)
+	GetBalance(AccountId, atm_client, session_key)
     
-def GetActivity(AccountId, atm_client):
+def GetActivity(AccountId, atm_client, session_key):
 	# Get transactions
     sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
     cursor.execute(sql, [AccountId])

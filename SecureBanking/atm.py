@@ -123,10 +123,10 @@ def AuthenticateCustomer(session_key):
 	# get password
 	Password = getpass()
 	# send password
-	clientSocket.send(Password)
+	clientSocket.send(triple_des(session_key).encrypt(Password, padmode=2))
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
-def GetCommands():
+def GetCommands(session_key):
 	
 	print "\nPlease select from the following options:\n"+\
 	"[B] display the current balance of the account\n"+\
@@ -141,8 +141,9 @@ def GetCommands():
 		
 		command = command.lower()
 		
-		clientSocket.send(command)
+		clientSocket.send(triple_des(session_key).encrypt(command, padmode=2))
 		serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+		serverResponse = triple_des(session_key).decrypt(serverResponse, padmode=2)
 		
 		if command == "b":
 			print serverResponse
@@ -189,6 +190,6 @@ if __name__ == "__main__":
 	
 	AuthenticateCustomer(session_key)
 	
-	GetCommands()
+	GetCommands(session_key)
 		
 	clientSocket.close() 
