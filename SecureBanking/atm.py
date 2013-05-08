@@ -130,25 +130,33 @@ def GetCommands():
 	"[Q] quit\n"	    
 		
 	while True:
-				# Prompt to accept and send commands to server
+		# Prompt to accept and send commands to server
 		command = raw_input("prompt> ")
 		
 		command = command.lower()
 		
 		clientSocket.send(command)
 		serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
-        
+		
+		if command == "b":
+			print serverResponse
+		
 		if command == "d":
 			command = raw_input("Enter amount> ")
 			clientSocket.send(command)
 			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+			print serverResponse
 			
 		if command == "w":
 			command = raw_input("Enter amount> ")
 			clientSocket.send(command)
-			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)			
-			          
-		print serverResponse
+			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+			print serverResponse
+						
+		if command == "a":
+			activity = pickle.loads(serverResponse)
+			for entry in activity:
+				print entry
 		
 		if command == "q":
 			break

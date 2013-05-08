@@ -161,7 +161,7 @@ def GetCommands(AccountId, atm_client):
         
 		elif command == 'a':
 			# Get activity
-			GetActivity(AccountId)
+			GetActivity(AccountId, atm_client)
 		   
 		elif command == 'q':
 			# Quit
@@ -228,21 +228,26 @@ def MakeWithdrawl(AccountId, atm_client):
 	# Display new balance
 	GetBalance(AccountId, atm_client)
     
-def GetActivity(AccountId):
+def GetActivity(AccountId, atm_client):
 	# Get transactions
     sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchall()
     
+    activity = []
+    
     # Print transactions
-    print string.ljust("Activity", 10), string.ljust("Amount", 10), string.ljust("Balance", 10), string.ljust("Time", 10) 
+    activity.append((string.ljust("Activity", 10), string.ljust("Amount", 10), string.ljust("Balance", 10), string.ljust("Time", 10)))
     for row in balance:
         # Make the format pretty
         time = parser.parse(row[3])
         formattedTime = time.strftime("%Y-%m-%d %H:%M")
         amount = locale.currency(row[1])
         balance1 = locale.currency(row[2])
-        print string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10) 
+        activity.append((string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10)))
+    atm_client.send(pickle.dumps(activity))
+    print pickle.dumps(activity)
+    
 		
 
 if __name__ == "__main__":
