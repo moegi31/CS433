@@ -36,6 +36,9 @@ import string
 from multiprocessing import Process
 MAX_ATM_THREADS = 2
 
+# Symmetric encryption
+from pyDes import *
+
 
 def import_pub_atmkey(atmid):
 	try:
@@ -99,12 +102,12 @@ def Authenticate(atm_client):
 	if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
 		return False
 	
-	return True
+	return session_key
 	
 	
-def AuthenticateCustomer(atm_client):
-	
-	AccountId = int(atm_client.recv(CLIENT_MSG_SIZE))
+def AuthenticateCustomer(atm_client, session_key):
+	AccountId = atm_client.recv(CLIENT_MSG_SIZE)
+	AccountId = int(triple_des(session_key).decrypt(AccountId, padmode=2))
 	atm_client.send("Thank you")
 	
 	Password = atm_client.recv(CLIENT_MSG_SIZE)
@@ -126,15 +129,16 @@ def AuthenticateCustomer(atm_client):
 		return False
 		
 def HandleClient(atm_client):
-		# Verify ATM connection	
-		if ( Authenticate(atm_client) == False ):
+		# Verify ATM connection
+		session_key = Authenticate(atm_client)
+		if ( session_key == False ):
 			print "Failed to authenticate"
 			return
 		else:
 			print "Authenticated"
 		
 		# Verify customer using ATM
-		result = AuthenticateCustomer(atm_client)
+		result = AuthenticateCustomer(atm_client, session_key)
 		if ( result == False ):
 			print "Failed to authenticate customer"
 			return
@@ -246,7 +250,6 @@ def GetActivity(AccountId, atm_client):
         balance1 = locale.currency(row[2])
         activity.append((string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10)))
     atm_client.send(pickle.dumps(activity))
-    print pickle.dumps(activity)
     
 		
 

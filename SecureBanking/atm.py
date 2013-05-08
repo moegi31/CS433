@@ -24,6 +24,9 @@ filepath = os.getcwd()
 # Password prompt
 from getpass import getpass
 
+# Symmetric encryption
+from pyDes import *
+
 def create_socket():
 	# Get the host name (or IP)
 	host = sys.argv[1]
@@ -90,8 +93,9 @@ def AuthenticateServer():
 	clientSocket.send(pickle.dumps(ver_nonce2))
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
-	# Send session key  
-	session_key = '123'
+	# Send session key
+	# Randomly generated 24 byte key  
+	session_key = Random.get_random_bytes(24)
 	enc_session_key = publicB.encrypt(session_key, None)
 	clientSocket.send(pickle.dumps(enc_session_key))
 	clientSocket.recv(SERVER_MSG_SIZE)
@@ -99,9 +103,11 @@ def AuthenticateServer():
 	# And a signature with it
 	signed_session_key = privateA.sign(session_key, None)
 	#print signed_session_key
-	clientSocket.send(pickle.dumps(signed_session_key))	
+	clientSocket.send(pickle.dumps(signed_session_key))
+	
+	return session_key	
 
-def AuthenticateCustomer():
+def AuthenticateCustomer(session_key):
 	# Get account
 	AccountId = raw_input("User ID(6 digit ID): ")
 
@@ -111,7 +117,7 @@ def AuthenticateCustomer():
 		AccountId = raw_input("User ID(6 digit ID): ")
 	
 	# send account id
-	clientSocket.send(AccountId)
+	clientSocket.send(triple_des(session_key).encrypt(AccountId, padmode=2))
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# get password
@@ -156,7 +162,7 @@ def GetCommands():
 		if command == "a":
 			activity = pickle.loads(serverResponse)
 			for entry in activity:
-				print entry
+				print entry[0], entry[1], entry[2], entry[3], "\n"
 		
 		if command == "q":
 			break
@@ -179,9 +185,9 @@ if __name__ == "__main__":
 	# create communication socket
 	clientSocket = create_socket()
 	
-	AuthenticateServer()
+	session_key = AuthenticateServer()
 	
-	AuthenticateCustomer()
+	AuthenticateCustomer(session_key)
 	
 	GetCommands()
 		
