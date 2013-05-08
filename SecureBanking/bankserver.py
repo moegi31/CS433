@@ -72,7 +72,7 @@ def Authenticate(atm_client):
 	dec_nonce1 = privateB.decrypt(pickle.loads(enc_nonce1))
 
 	# Send back Nonce1 and Nonce2
-	nonce2 = 'ohhi'
+	nonce2 = Random.get_random_bytes(100)
 	ver_nonce1 = publicA.encrypt(dec_nonce1, None)
 	enc_nonce2 = publicA.encrypt(nonce2, None)
 
@@ -157,7 +157,7 @@ def GetCommands(AccountId, atm_client):
         
 		elif command == 'w':
 			# Make withdrawl
-			MakeWithdrawl(AccountId)
+			MakeWithdrawl(AccountId, atm_client)
         
 		elif command == 'a':
 			# Get activity
@@ -210,7 +210,6 @@ def MakeWithdrawl(AccountId, atm_client):
 	# Get amount
 	amount = atm_client.recv(CLIENT_MSG_SIZE)
 	
-	
 	# Update balance in database
 	sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
 	cursor.execute(sql, [amount, AccountId])
@@ -227,7 +226,7 @@ def MakeWithdrawl(AccountId, atm_client):
 	conn.commit()    
 
 	# Display new balance
-	GetBalance(AccountId)
+	GetBalance(AccountId, atm_client)
     
 def GetActivity(AccountId):
 	# Get transactions

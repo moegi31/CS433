@@ -66,7 +66,7 @@ def AuthenticateServer():
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# Send nonce1
-	nonce1 = 'helloworld'
+	nonce1 = Random.get_random_bytes(100)
 	enc_nonce1 = publicB.encrypt(nonce1, None)
 	
 	clientSocket.send(pickle.dumps(enc_nonce1))
@@ -122,14 +122,15 @@ def AuthenticateCustomer():
 	
 def GetCommands():
 	
+	print "\nPlease select from the following options:\n"+\
+	"[B] display the current balance of the account\n"+\
+	"[D] deposit money\n"+\
+	"[W] withdrawals\n"+\
+	"[A] account activities\n"+\
+	"[Q] quit\n"	    
+		
 	while True:
-		print "\nPlease select from the following options:\n"+\
-		"[B] display the current balance of the account\n"+\
-		"[D] deposit money\n"+\
-		"[W] withdrawals\n"+\
-		"[A] account activities\n"+\
-		"[Q] quit\n"	
-		# Prompt to accept and send commands to server
+				# Prompt to accept and send commands to server
 		command = raw_input("prompt> ")
 		
 		command = command.lower()
