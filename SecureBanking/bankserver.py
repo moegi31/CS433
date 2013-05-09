@@ -93,16 +93,18 @@ def Authenticate(atm_client):
 	dec_ver_nonce2 = privateB.decrypt(pickle.loads(ver_nonce2))
 
 	if dec_ver_nonce2 != nonce2:
-		return False					
+		return False, atmID					
 		
 	# Retrieve session_key
 	session_key = privateB.decrypt(pickle.loads(enc_session_key))
 
 	# verifiy the signature matches
 	if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
-		return False
+		return False, atmID
 	
-	return session_key
+	print "ATM " + atmID + " has connected." 
+	
+	return session_key, atmID
 	
 	
 def AuthenticateCustomer(atm_client, session_key):
@@ -131,12 +133,10 @@ def AuthenticateCustomer(atm_client, session_key):
 		
 def HandleClient(atm_client):
 		# Verify ATM connection
-		session_key = Authenticate(atm_client)
+		session_key, atmID = Authenticate(atm_client)
 		if ( session_key == False ):
 			print "Failed to authenticate"
 			return
-		else:
-			print "Authenticated"
 		
 		# Verify customer using ATM
 		result = AuthenticateCustomer(atm_client, session_key)
@@ -144,9 +144,15 @@ def HandleClient(atm_client):
 			print "Failed to authenticate customer"
 			return
 		else:
-			print "Customer has been verified"
+			print "Client " + str(result) + " has signed in."
 		AccountId = int(result)
+		
+		# Loop until client asks to disconnet
 		GetCommands(AccountId, atm_client, session_key)
+		
+		# Logging messages
+		print "Client " + result + " has signed out."
+		print "ATM " + int(atmID) + " has disconnected."
 		
 def GetCommands(AccountId, atm_client, session_key):
 	while 1:
@@ -157,27 +163,30 @@ def GetCommands(AccountId, atm_client, session_key):
 		# Process the command accordingly
 		if command == 'b':
 			# Get balance
+			print "#" + str(AccountId) + " - balance request."
 			GetBalance(AccountId, atm_client, session_key)
         
 		elif command == 'd':
 			# Make deposit
+			print "#" + str(AccountId) + " - deposit request."
 			MakeDeposit(AccountId, atm_client, session_key)
         
 		elif command == 'w':
 			# Make withdrawl
+			print "#" + str(AccountId) + " - withdrawl request."
 			MakeWithdrawl(AccountId, atm_client, session_key)
         
 		elif command == 'a':
 			# Get activity
+			print "#" + str(AccountId) + " - activity request."
 			GetActivity(AccountId, atm_client, session_key)
 		   
 		elif command == 'q':
 			# Quit
-			print "Quiting program."
 			break
 		
 		else:
-			print "Unrecognized command.  Please try again."
+			print "#" + str(AccountId) + " - unrecognized request."
 			
 			
 def GetBalance(AccountId, atm_client, session_key):
