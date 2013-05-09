@@ -161,15 +161,15 @@ def GetCommands(AccountId, atm_client, session_key):
         
 		elif command == 'd':
 			# Make deposit
-			MakeDeposit(AccountId, atm_client)
+			MakeDeposit(AccountId, atm_client, session_key)
         
 		elif command == 'w':
 			# Make withdrawl
-			MakeWithdrawl(AccountId, atm_client)
+			MakeWithdrawl(AccountId, atm_client, session_key)
         
 		elif command == 'a':
 			# Get activity
-			GetActivity(AccountId, atm_client)
+			GetActivity(AccountId, atm_client, session_key)
 		   
 		elif command == 'q':
 			# Quit
@@ -182,48 +182,54 @@ def GetCommands(AccountId, atm_client, session_key):
 			
 def GetBalance(AccountId, atm_client, session_key):
     
-    # Display new balance
+    # Get the current balance from the server
     sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchone()[0]
-    # print "Balance is " + locale.currency(balance)
+    
+    # Return the balance to the client
     balanceMessage = "Balance is " + locale.currency(balance)
     atm_client.send(triple_des(session_key).encrypt(balanceMessage, padmode=2))
     
 def MakeDeposit(AccountId, atm_client, session_key):
-    atm_client.send("thankyou")
-    # Get amount
-    amount = atm_client.recv(CLIENT_MSG_SIZE)
-    
-    # Update balance in database
-    sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
-    cursor.execute(sql, [amount, AccountId])
-    conn.commit()
-    
-    # Get new balance value
-    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
-    cursor.execute(sql, [AccountId])
-    balance = cursor.fetchone()[0]
-    
-    # Insert activity in log
-    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
-    cursor.execute(sql, [AccountId, "Deposit", amount, datetime.datetime.now(), balance])
-    conn.commit()  
-    
-    # Display new balance
-    GetBalance(AccountId, atm_client, session_key)
-    
-def MakeWithdrawl(AccountId, atm_client, session_key):
-	atm_client.send("thankyou")
+	# Need to send a message so we can be able to read the amount
+	atm_client.send(triple_des(session_key).encrypt('Send amount', padmode=2))
 	
 	# Get amount
 	amount = atm_client.recv(CLIENT_MSG_SIZE)
+	amount = triple_des(session_key).decrypt(amount, padmode=2)
+
+	# Update balance in database
+	sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
+	cursor.execute(sql, [amount, AccountId])
+	conn.commit()
+	
+	# Get new balance value
+	sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+	cursor.execute(sql, [AccountId])
+	balance = cursor.fetchone()[0]
+
+	# Insert activity in log
+	sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+	cursor.execute(sql, [AccountId, "Deposit", amount, datetime.datetime.now(), balance])
+	conn.commit()  
+
+	# Display new balance
+	GetBalance(AccountId, atm_client, session_key)
+    
+def MakeWithdrawl(AccountId, atm_client, session_key):
+	# Need to send a message so we can be able to read the amount
+	atm_client.send(triple_des(session_key).encrypt('Send amount', padmode=2))
+	
+	# Get amount  
+	amount = atm_client.recv(CLIENT_MSG_SIZE)
+	amount = triple_des(session_key).decrypt(amount, padmode=2)
 	
 	# Update balance in database
 	sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
 	cursor.execute(sql, [amount, AccountId])
 	conn.commit()
-    
+
 	# Get new balance value
 	sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
 	cursor.execute(sql, [AccountId])
@@ -243,10 +249,13 @@ def GetActivity(AccountId, atm_client, session_key):
     cursor.execute(sql, [AccountId])
     balance = cursor.fetchall()
     
+    # An empty list where transactions will be kept
     activity = []
     
-    # Print transactions
+    # Column headers for transactions
     activity.append((string.ljust("Activity", 10), string.ljust("Amount", 10), string.ljust("Balance", 10), string.ljust("Time", 10)))
+    
+    # Iterate through sql response and build list
     for row in balance:
         # Make the format pretty
         time = parser.parse(row[3])
@@ -254,7 +263,12 @@ def GetActivity(AccountId, atm_client, session_key):
         amount = locale.currency(row[1])
         balance1 = locale.currency(row[2])
         activity.append((string.ljust(str(row[0]), 10), string.ljust(amount, 10), string.ljust(balance1, 10) , string.ljust(formattedTime, 10)))
-    atm_client.send(pickle.dumps(activity))
+    
+    # In order to send the list though TCP, it should be converted to a string.
+    # We can do this by pickling the list. This basically turns it into a string
+    # the client can reconstruct.
+    activity = pickle.dumps(activity)
+    atm_client.send(triple_des(session_key).encrypt(activity, padmode=2))
     
 		
 

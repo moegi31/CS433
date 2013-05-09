@@ -137,34 +137,52 @@ def GetCommands(session_key):
 		
 	while True:
 		# Prompt to accept and send commands to server
-		command = raw_input("prompt> ")
-		
+		command = raw_input("prompt> ")		
 		command = command.lower()
 		
+		# Send command to server
 		clientSocket.send(triple_des(session_key).encrypt(command, padmode=2))
+		
+		# Receive and decrypt first response
 		serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
 		serverResponse = triple_des(session_key).decrypt(serverResponse, padmode=2)
 		
+		# Get the balance
 		if command == "b":
 			print serverResponse
 		
+		# Make a deposit
 		if command == "d":
-			command = raw_input("Enter amount> ")
-			clientSocket.send(command)
-			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
-			print serverResponse
+			# Get amount from customer and send to server for processing
+			amount = raw_input("Enter amount> ")
+			clientSocket.send(triple_des(session_key).encrypt(amount, padmode=2))
 			
-		if command == "w":
-			command = raw_input("Enter amount> ")
-			clientSocket.send(command)
+			# Receive updated balance from server after processing
 			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+			serverResponse = triple_des(session_key).decrypt(serverResponse, padmode=2)
 			print serverResponse
-						
+		
+		# Make a withdrawl
+		if command == "w":
+			# Get amount from customer and send to server for processing
+			amount = raw_input("Enter amount> ")
+			clientSocket.send(triple_des(session_key).encrypt(amount, padmode=2))
+			
+			# Receive updated balance from server after processing
+			serverResponse = clientSocket.recv(SERVER_MSG_SIZE)
+			serverResponse = triple_des(session_key).decrypt(serverResponse, padmode=2)
+			print serverResponse
+		
+		# Get Activity				
 		if command == "a":
+			# response will be a pickled list.  
+			# Pickled means to turn an object into a string.
+			# We unpickle to print the output to the client.
 			activity = pickle.loads(serverResponse)
 			for entry in activity:
 				print entry[0], entry[1], entry[2], entry[3], "\n"
 		
+		# Quit
 		if command == "q":
 			break
     		    
