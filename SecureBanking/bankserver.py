@@ -16,8 +16,6 @@ CLIENT_MSG_SIZE = 2048
 
 # Database imports and variables
 import sqlite3
-conn = sqlite3.connect("BankDatabase.sqlite")
-cursor = conn.cursor()
 
 # Currency formatting
 import locale
@@ -33,8 +31,8 @@ filepath = os.getcwd()
 import string
 
 # includes for Threading
-from multiprocessing import Process
-MAX_ATM_THREADS = 2
+from threading import Lock
+import thread
 
 # Symmetric encryption
 from pyDes import *
@@ -115,12 +113,17 @@ def AuthenticateCustomer(atm_client, session_key):
 	Password = atm_client.recv(CLIENT_MSG_SIZE)
 	Password = triple_des(session_key).decrypt(Password, padmode=2)
 	atm_client.send("Thank you")
-	
-	# Query account from 
-	sql = "SELECT AccountID, Password FROM ClientAccounts WHERE AccountId=?"
-	cursor.execute(sql, [AccountId])
-	account = cursor.fetchone()
-	
+
+	# lock any calls to database
+	mutex.acquire()
+	try:
+		# Query account from 
+		sql = "SELECT AccountID, Password FROM ClientAccounts WHERE AccountId=?"
+		cursor.execute(sql, [AccountId])
+		account = cursor.fetchone()
+	finally:
+		mutex.release()
+
 	# Check to see if account exists
 	if account is None:
 		return False
@@ -151,8 +154,8 @@ def HandleClient(atm_client):
 		GetCommands(AccountId, atm_client, session_key)
 		
 		# Logging messages
-		print "Client " + result + " has signed out."
-		print "ATM " + int(atmID) + " has disconnected."
+		print "Client " + str(AccountId) + " has signed out."
+		print "ATM " + str(atmID) + " has disconnected."
 		
 def GetCommands(AccountId, atm_client, session_key):
 	while 1:
@@ -190,11 +193,15 @@ def GetCommands(AccountId, atm_client, session_key):
 			
 			
 def GetBalance(AccountId, atm_client, session_key):
-    
-    # Get the current balance from the server
-    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
-    cursor.execute(sql, [AccountId])
-    balance = cursor.fetchone()[0]
+    # lock any calls to database
+    mutex.acquire()
+    try:
+        # Get the current balance from the server
+        sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+        cursor.execute(sql, [AccountId])
+        balance = cursor.fetchone()[0]
+    finally:
+	    mutex.release()
     
     # Return the balance to the client
     balanceMessage = "Balance is " + locale.currency(balance)
@@ -208,21 +215,25 @@ def MakeDeposit(AccountId, atm_client, session_key):
 	amount = atm_client.recv(CLIENT_MSG_SIZE)
 	amount = triple_des(session_key).decrypt(amount, padmode=2)
 
-	# Update balance in database
-	sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
-	cursor.execute(sql, [amount, AccountId])
-	conn.commit()
-	
-	# Get new balance value
-	sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
-	cursor.execute(sql, [AccountId])
-	balance = cursor.fetchone()[0]
+    # lock any calls to database
+	mutex.acquire()
+	try:
+	    # Update balance in database
+	    sql = "Update ClientAccounts Set Balance = (Balance + ?) WHERE AccountId=?"
+	    cursor.execute(sql, [amount, AccountId])
+	    conn.commit()
+	    
+	    # Get new balance value
+	    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+	    cursor.execute(sql, [AccountId])
+	    balance = cursor.fetchone()[0]
 
-	# Insert activity in log
-	sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
-	cursor.execute(sql, [AccountId, "Deposit", amount, datetime.datetime.now(), balance])
-	conn.commit()  
-
+	    # Insert activity in log
+	    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+	    cursor.execute(sql, [AccountId, "Deposit", amount, datetime.datetime.now(), balance])
+	    conn.commit()  
+	finally:
+	    mutex.release()
 	# Display new balance
 	GetBalance(AccountId, atm_client, session_key)
     
@@ -234,30 +245,39 @@ def MakeWithdrawl(AccountId, atm_client, session_key):
 	amount = atm_client.recv(CLIENT_MSG_SIZE)
 	amount = triple_des(session_key).decrypt(amount, padmode=2)
 	
-	# Update balance in database
-	sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
-	cursor.execute(sql, [amount, AccountId])
-	conn.commit()
-
-	# Get new balance value
-	sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
-	cursor.execute(sql, [AccountId])
-	balance = cursor.fetchone()[0]    
-
-	# Insert activity in log
-	sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
-	cursor.execute(sql, [AccountId, "Withdrawl", amount, datetime.datetime.now(), balance])
-	conn.commit()    
-
+    # lock any calls to database
+	mutex.acquire()
+	try:
+	    # Update balance in database
+	    sql = "Update ClientAccounts Set Balance = (Balance - ?) WHERE AccountId=?"
+	    cursor.execute(sql, [amount, AccountId])
+	    conn.commit()
+	
+	    # Get new balance value
+	    sql = "SELECT Balance FROM ClientAccounts WHERE AccountId=?"
+	    cursor.execute(sql, [AccountId])
+	    balance = cursor.fetchone()[0]    
+	
+	    # Insert activity in log
+	    sql = "Insert into ClientActivity (AccountId, Activity, Amount, Time, Balance) values ( ?, ?, ?, ?, ?) "
+	    cursor.execute(sql, [AccountId, "Withdrawl", amount, datetime.datetime.now(), balance])
+	    conn.commit()    
+	finally:
+	    mutex.release()
 	# Display new balance
 	GetBalance(AccountId, atm_client, session_key)
     
 def GetActivity(AccountId, atm_client, session_key):
-	# Get transactions
-    sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
-    cursor.execute(sql, [AccountId])
-    balance = cursor.fetchall()
-    
+    # lock any calls to database
+    mutex.acquire()
+    try:
+	    # Get transactions
+        sql = "SELECT Activity, Amount, Balance, Time FROM ClientActivity WHERE AccountId=?"
+        cursor.execute(sql, [AccountId])
+        balance = cursor.fetchall()
+    finally:
+	    mutex.release()
+
     # An empty list where transactions will be kept
     activity = []
     
@@ -290,6 +310,12 @@ if __name__ == "__main__":
 	# Import known keys
 	privateB = import_priv_bankkey()
 	
+	# Connect to database
+	conn = sqlite3.connect("BankDatabase.sqlite", check_same_thread = False)
+	cursor = conn.cursor()
+	
+	# mutex initialize
+	mutex = Lock()
 	# Get the port number 
 	port = int(sys.argv[1])
 	 
@@ -309,7 +335,8 @@ if __name__ == "__main__":
 		# Accept a connection from the client
 		client, address = listenSocket.accept()
 		
-		HandleClient(client)			
-		
-		# Close the connection to the client
-		client.close()
+		#HandleClient(client)			
+		thread.start_new_thread(HandleClient, (client,))
+	
+	# Close the connection to the client
+	client.close()
