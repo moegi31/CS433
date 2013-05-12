@@ -37,3 +37,7 @@ nosetests.xml
 
 # database
 *.sqlite
+
+# temporary files
+*.swp
+*~
