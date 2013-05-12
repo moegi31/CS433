@@ -13,7 +13,7 @@ To remove binary and compilation files
 
 Running server
 
-	$ python bankserver.py  <PORT> 
+	python bankserver.py  <PORT> 
 
 where
 
@@ -21,7 +21,7 @@ where
 
 Running client
 
-	$ python atm.py  <SERVER IP> <SERVER PORT> <ATM ID> 
+	python atm.py  <SERVER IP> <SERVER PORT> <ATM ID> 
 
 where
 
