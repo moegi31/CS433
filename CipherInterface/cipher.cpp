@@ -4,6 +4,10 @@
 #include "CipherInterface.h"
 #include "Playfair.h"
 #include "DES.h"
+#include "Caesar.h"
+#include "RailFence.h"
+#include "RowTransposition.h"
+#include "Vigenre.h"
 
 using namespace std;
 
@@ -57,9 +61,15 @@ int main(int argc, char** argv)
 				argv[0]);
 		return 0;
 	}
-	
+	// default block size for all ciphers
+	int block_size = 100;
+
 	string plf_string("PLF");
 	string des_string("DES");
+	string rts_string("RTS");
+	string rfc_string("RFC");
+	string vig_string("VIG");
+	string ces_string("CES");	
 	string enc_string("ENC");
 	string dec_string("DEC");
 
@@ -72,6 +82,23 @@ int main(int argc, char** argv)
 	else if ( des_string.compare(argv[1]) == 0)
 	{
 		cipher = new DES();
+		block_size = 8;	// DES specifically needs a block size of 8
+	}
+	else if ( rts_string.compare(argv[1]) == 0)
+	{
+		cipher = new RowTransposition();
+	}
+	else if ( rfc_string.compare(argv[1]) == 0)
+	{
+		cipher = new RailFence();
+	}
+	else if ( vig_string.compare(argv[1]) == 0)
+	{
+		cipher = new Vigenre();
+	}
+	else if ( ces_string.compare(argv[1]) == 0)
+	{
+		cipher = new Caesar();
 	}
 	else
 	{
@@ -94,7 +121,7 @@ int main(int argc, char** argv)
 
 		while(true)
 		{
-			string input = get_file_contents(argv[4], offset, 8);
+			string input = get_file_contents(argv[4], offset, block_size);
 			if(input.length() <=0) return 0;
 				
 			if (enc_string.compare(argv[3]) == 0)

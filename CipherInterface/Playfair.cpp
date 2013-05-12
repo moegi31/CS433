@@ -1,6 +1,7 @@
 #include "Playfair.h"
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 /**
  * Sets the key to use
  * @param key - the key to use

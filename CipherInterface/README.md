@@ -24,8 +24,10 @@ where
 * OUTPUT FILE: the file to which to write the output.
 
 #### Notes
+
 * Playfair: the key must not have any repeated characters
 * RailFence: Padded with '?' if length isnt easily divided into #rails
+* RowTransposition: Key should not start with 0. Key should not have spaces. Key should be sequence of single consecutive digit numbers (eg. 14253 is acceptable)
 
 With large files, the block size needs to be adjusted in source code
 
