@@ -1,6 +1,7 @@
 #### Name: Chris Gudea
-#### Partners: David Robison
 #### Email: pulala@gmail.com
+#### Partners: David Robison
+#### Email: davidrobison122@gmail.com
 #### Language: C++
 
 #### Compilation and Running
