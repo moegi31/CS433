@@ -1,8 +1,6 @@
-#### Name: Chris Gudea
-#### Email: pulala@gmail.com
-#### Partners: David Robison
-#### Email: davidrobison122@gmail.com
-#### Language: C++
+	Collaborators: Chris Gudea, David Robison
+	Contact: pulala@gmail.com, davidrobison122@gmail.com
+	Language: C++
 
 #### Compilation and Running
 To build, simply run
@@ -25,6 +23,14 @@ where
 * INPUT FILE: the file from which to read the input.
 * OUTPUT FILE: the file to which to write the output.
 
-#### Extra Credit not implemented
-
 #### Notes
+* Playfair: the key must not have any repeated characters
+* RailFence: Padded with '?' if length isnt easily divided into #rails
+
+With large files, the block size needs to be adjusted in source code
+
+For every cipher but DES, encrypts 100 bytes at a time, so for some encryption techniques the ciphertext may be altered
+
+For DES, it encrypts in 8 bit blocks
+
+#### Extra Credit not implemented
