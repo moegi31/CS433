@@ -1,8 +1,8 @@
-#### Name: Chris Gudea
-#### Email: pulala@gmail.com
-#### Partners: David Robison
-#### Email: davidrobison122@gmail.com
-#### Language: Python 2.7.3
+	Name: Chris Gudea
+	Email: pulala@gmail.com
+	Partners: David Robison
+	Email: davidrobison122@gmail.com
+	Language: Python 2.7.3
 
 #### Compilation and Running
 To build, simply run
