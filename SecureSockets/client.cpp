@@ -128,7 +128,24 @@ int main(int argc, char** argv){
     }else if(cipherName == "DES"){
         CipherInterface* cipher = new DES();
         cipher->setKey(key);
-        cipherText = cipher->encrypt(inputText);
+        string desBlock = "";
+        for(int i = 0; i < inputText.length(); i++){
+            desBlock += inputText[i];
+            if((i + 1) % 8 == 0){
+                cipherText += cipher->encrypt(desBlock);
+                cipherText = cipherText.substr(0, cipherText.size()-1);
+                desBlock = "";
+            }
+        }
+        if(desBlock.length() < 8 && desBlock != ""){
+            for(int i = desBlock.length(); i < 8; i++){
+                desBlock += " ";
+            }
+            cout << desBlock << endl;
+            cipherText += cipher->encrypt(desBlock);
+        }
+        
+        //cipherText = cipher->encrypt(inputText);
         cout << "Plaintext: " << inputText << endl;
         cout << "Key: " << key << endl;
         cout << "DES Ciphertext: " << cipherText << endl;
@@ -142,6 +159,7 @@ int main(int argc, char** argv){
         return 1;
     }	
 	
+	fprintf(stderr, "Cipher Text = %s\n", cipherText.c_str()); /* Print the port number */
     sendMessage(connectionId, cipherText.c_str());	    
 	
 	fprintf(stderr, "Disconnecting from server...\n");

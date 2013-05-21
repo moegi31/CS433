@@ -20,7 +20,7 @@
 	
 using namespace std;
 	
-#define MAX_MESSAGE_SIZE 1000
+#define MAX_MESSAGE_SIZE 100000
 	
 int listenSocket = -1; /* File descriptor representing the listen socket */
 int connectionId = -1; /* File descriptor representing file connection */
@@ -34,15 +34,15 @@ void handleShutdown(int s){
 	
 /* Receive message from specified socket */
 void receiveMessage(const int& socket, char* message){
-	int messageSize = -1; /* The file name size */
+	int messageSize = -1; /* The message size */
 	
-	/* Get the size of the ftp command */
+	/* Get the size of the message */
 	if((messageSize = tcp_recv_size(socket)) < 0){
 		perror("tcp_recv_size");
 		exit(-1);
 	}
 	
-	/* Get the ftp command */	
+	/* Get the message */	
 	if(tcp_recv(socket, message, messageSize) < 0){
 		perror("tcp_recv");
 		exit(-1);
@@ -124,6 +124,7 @@ int main(int argc, char** argv){
 		bytesRead = 0; /* Reset number of bytes read */
 		
 		receiveMessage(connectionId, message);
+        cout << message << endl;
         string inputText = message;
 		
 		if(cipherName == "PLF"){
@@ -164,7 +165,16 @@ int main(int argc, char** argv){
         }else if(cipherName == "DES"){
             CipherInterface* cipher = new DES();
             cipher->setKey(key);
-            string plainText = cipher->decrypt(inputText);
+            string plainText = "";
+            string desBlock = "";
+            for(int i = 0; i < inputText.length(); i++){
+                desBlock += inputText[i];
+                if((i + 1) % 8 == 0){
+                    plainText += cipher->decrypt(desBlock);
+                    desBlock = "";
+                }
+            }
+            
             cout << "DES Ciphertext: " << inputText << endl;
             cout << "Key: " << key << endl;
             cout << "Plaintext: " << plainText << endl;
