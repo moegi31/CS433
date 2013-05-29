@@ -101,10 +101,10 @@ def AuthenticateServer():
 	clientSocket.recv(SERVER_MSG_SIZE)
 	
 	# And a signature with it
-	signed_session_key = privateA.sign(session_key, None)
+#	signed_session_key = privateA.sign(session_key, None)
 	#print signed_session_key
-	clientSocket.send(pickle.dumps(signed_session_key))
-	
+#	clientSocket.send(pickle.dumps(signed_session_key))
+
 	return session_key	
 
 def AuthenticateCustomer(session_key):

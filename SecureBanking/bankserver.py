@@ -82,10 +82,10 @@ def Authenticate(atm_client):
 
 	# Receive nonce2, session, and sig of session
 	ver_nonce2 = atm_client.recv(CLIENT_MSG_SIZE)
-	atm_client.send("Thank you")
+	atm_client.send("Thank you for nonce")
 	enc_session_key = atm_client.recv(CLIENT_MSG_SIZE)
-	atm_client.send("Thank you")
-	dec_session_key = atm_client.recv(CLIENT_MSG_SIZE)
+	atm_client.send("Thank you for encrypted session key")
+	#dec_session_key = atm_client.recv(CLIENT_MSG_SIZE)
 			
 	# Verify nonce2
 	dec_ver_nonce2 = privateB.decrypt(pickle.loads(ver_nonce2))
@@ -97,8 +97,8 @@ def Authenticate(atm_client):
 	session_key = privateB.decrypt(pickle.loads(enc_session_key))
 
 	# verifiy the signature matches
-	if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
-		return False, atmID
+	#if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
+	#	return False, atmID
 	
 	print "ATM " + atmID + " has connected." 
 	
