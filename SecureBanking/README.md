@@ -29,6 +29,17 @@ where
 * SERVER PORT: the server port to connect on (eg. 1234)
 * ATM ID: either 1 or 2 (identifies ATM and which key to use)
 
+#### AccountIDs and Passwords
+There are two test accounts on the server
+
+	User ID(6 digit ID): 111111
+	Password: test
+
+or
+
+	User ID(6 digit ID): 123456
+	Password: secret
+
 #### Notes
 This program has dependencies on Python version 2.5+. Some of the libraries
 used are deprecated as of Python 3.0+. Python version 2.7.3 was used on the test
