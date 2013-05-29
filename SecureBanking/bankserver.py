@@ -3,6 +3,9 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Hash import SHA256
 
+# include for openSSL hash implementations
+import hashlib
+
 # Sending crypto across the wire
 import pickle
 
@@ -86,6 +89,7 @@ def Authenticate(atm_client):
 	enc_session_key = atm_client.recv(CLIENT_MSG_SIZE)
 	atm_client.send("Thank you for encrypted session key")
 	#dec_session_key = atm_client.recv(CLIENT_MSG_SIZE)
+	signed_hashed_key = atm_client.recv(CLIENT_MSG_SIZE)
 			
 	# Verify nonce2
 	dec_ver_nonce2 = privateB.decrypt(pickle.loads(ver_nonce2))
@@ -95,6 +99,14 @@ def Authenticate(atm_client):
 		
 	# Retrieve session_key
 	session_key = privateB.decrypt(pickle.loads(enc_session_key))
+
+	# calculate sha256 of key
+	h = hashlib.sha256()
+	h.update(session_key)
+
+	# verifiy the signature matches
+	if not (publicA.verify(h.hexdigest(), pickle.loads(signed_hashed_key))):
+		return False, atmID
 
 	# verifiy the signature matches
 	#if not (publicA.verify(session_key, pickle.loads(dec_session_key))):
@@ -139,12 +151,14 @@ def HandleClient(atm_client):
 		session_key, atmID = Authenticate(atm_client)
 		if ( session_key == False ):
 			print "Failed to authenticate"
+			atm_client.close()
 			return
 		
 		# Verify customer using ATM
 		result = AuthenticateCustomer(atm_client, session_key)
 		if ( result == False ):
 			print "Failed to authenticate customer"
+			atm_client.close()
 			return
 		else:
 			print "Client " + str(result) + " has signed in."
@@ -186,6 +200,7 @@ def GetCommands(AccountId, atm_client, session_key):
 		   
 		elif command == 'q':
 			# Quit
+			atm_client.close()
 			break
 		
 		else:

@@ -3,6 +3,9 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Hash import SHA256
 
+# include for openSSL hash implementations
+import hashlib
+
 # Sending crypto across the wire
 import pickle
 
@@ -99,11 +102,15 @@ def AuthenticateServer():
 	enc_session_key = publicB.encrypt(session_key, None)
 	clientSocket.send(pickle.dumps(enc_session_key))
 	clientSocket.recv(SERVER_MSG_SIZE)
-	
+
+	# hash session key and sign with private key
+	h = hashlib.sha256()
+	h.update(session_key)
+	signed_sk = privateA.sign(h.hexdigest(), None)
+	clientSocket.send(pickle.dumps(signed_sk))
 	# And a signature with it
-#	signed_session_key = privateA.sign(session_key, None)
-	#print signed_session_key
-#	clientSocket.send(pickle.dumps(signed_session_key))
+	#signed_session_key = privateA.sign(hashed_sess_key, None)
+	#clientSocket.send(pickle.dumps(signed_session_key))
 
 	return session_key	
 
